@@ -115,11 +115,14 @@ legend('True plant','Estimated plant','Estimated transient plant','ETFE')
 
 figure
 [magG,~,~] = bode(G0,f*2*pi);
-semilogx(f,20*log10(abs(G))-squeeze(magG),'Color',c2); hold on 
+absG = (squeeze(magG));
+semilogx(f,mag2db(abs(abs(G)-absG)),'Color',c2); hold on 
 [magG,~,~] = bode(G0,Getfe.Frequency*128*2);
-semilogx(Getfe.Frequency*128/pi,20*log10(squeeze(abs(Getfe.ResponseData)))-squeeze(magG),'Color',c3);
+absG = (squeeze(magG));
+semilogx(Getfe.Frequency*128/pi,mag2db(abs(squeeze(abs(Getfe.ResponseData))-absG)),'Color',c4);
 xlabel('Frequency [Hz]'); xlim([f(1) f(end)]);
 ylabel('Estimation Error [dB]');
+legend('LPM','ETFE')
 
 
 
