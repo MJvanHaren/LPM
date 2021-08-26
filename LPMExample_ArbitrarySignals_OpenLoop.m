@@ -11,7 +11,7 @@ Ts = 1/250;
 Omega2 = 4*Omega1; % rad/s
 P = 5.6e3*(0.9*s^2+2*s+5.4e4)/(1.1*0.9*s^4+(1.1+0.9)*2*s^3+(1.1+0.9)*5.4e4*s^2);
 C = 5*(1/(10*2*pi)*s+1)/(1/(40*2*pi)*s+1);
-G0s = C/(1+P*C);
+G0s = P/(1+P*C);
 G0 = c2d(G0s,Ts,'tustin');
 ssG0 = ss(G0);
 
@@ -43,6 +43,7 @@ plot(t,u);
 
 
 %% simulate
+% y = lsim(G0,u,t)+0.001*randn(Np,1);
 y = lsim(G0,u,t);
 
 Uf=fft(u)/sqrt(Np);
@@ -60,7 +61,7 @@ U = Uf(1:N)';
 % U(1 : n )  = conj(Uf(n + 1 : -1 : 2 ));
 
 
-Getfe = etfe([y u],500,N);
+Getfe = etfe([y u],100,N);
 %% LPM
 R = length(K1(1))-1;
 dof = 2*n+1-(R+1)*2;
@@ -122,7 +123,7 @@ absG = (squeeze(magG));
 semilogx(Getfe.Frequency*128/pi,mag2db(abs(squeeze(abs(Getfe.ResponseData))-absG)),'Color',c4);
 xlabel('Frequency [Hz]'); xlim([f(1) f(end)]);
 ylabel('Estimation Error [dB]');
-legend('LPM','ETFE')
+legend('LPM','ETFE','location','best')
 
 
 
