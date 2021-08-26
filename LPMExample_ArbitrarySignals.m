@@ -60,7 +60,7 @@ U = Uf(1:N)';
 % U(1 : n )  = conj(Uf(n + 1 : -1 : 2 ));
 
 
-Getfe = etfe([y u],500);
+Getfe = etfe([y u],500,N);
 %% LPM
 R = length(K1(1))-1;
 dof = 2*n+1-(R+1)*2;
@@ -108,8 +108,16 @@ opts = bodeoptions;
 opts.FreqUnits = 'Hz';
 opts.xlim = [1e-1 125];
 bodemag(G0,opts); hold on;
-semilogx(f,20*log10(abs(G)),'Color',c2); hold on % random *2?
+semilogx(f,20*log10(abs(G)),'Color',c2); hold on
 semilogx(f,20*log10(abs(T(1:length(f)))),'Color',c3);
 semilogx(Getfe.Frequency*128/pi,20*log10(squeeze(abs(Getfe.ResponseData))),'Color',c4);
 legend('True plant','Estimated plant','Estimated transient plant','ETFE')
+
+figure
+[magG,~,~] = bode(G0,f*2*pi);
+semilogx(f,20*log10(abs(G))-squeeze(magG),'Color',c2); hold on 
+[magG,~,~] = bode(G0,Getfe.Frequency*128*2);
+semilogx(Getfe.Frequency*128/pi,20*log10(squeeze(abs(Getfe.ResponseData)))-squeeze(magG),'Color',c3);
+
+
 
