@@ -44,7 +44,7 @@ opts = bodeoptions;
 opts.FreqUnits = 'Hz';
 opts.xlim = [1e-1 125];
 bodemag(G0,opts); hold on;
-semilogx(f,20*log10(abs(G_LPM)),'Color',c2); hold on %-(n-1)*Ts or -n*Ts is perfect! -> fix in freq window?
+semilogx(f,20*log10(abs(G_LPM)),'Color',c2); hold on
 semilogx(f,20*log10(abs(T_LPM(1:length(f)))),'Color',c3);
 semilogx(G_ETFE.Frequency*128/pi,20*log10(squeeze(abs(G_ETFE.ResponseData))),'Color',c4);
 legend('True plant','Estimated plant','Estimated transient plant','ETFE')

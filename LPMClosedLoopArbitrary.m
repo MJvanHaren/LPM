@@ -1,6 +1,6 @@
 function [G_LPM, T_LPM] = LPMClosedLoopArbitrary(u,y,r,n,R)
-% This script will calculate a local polynomial model for the given in- and output of a system.
-% The system is assumed to be SISO and in open loop.
+% This script will calculate a local polynomial model for the given reference, in- and output of a system.
+% The system is assumed to be SISO and in closed loop, see figure 7-4 Pintelon2012.
 % Inputs:
 %     u : Input to (open loop) plant in time domain
 %     y : Output of plant to given input signal u

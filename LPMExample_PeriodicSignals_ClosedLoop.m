@@ -16,28 +16,32 @@ C = c2d(C,Ts,'tustin');
 
 n = 4; % window size left and right
 R=2; % max. degree of polynomial in LPM
-tperiod = 40; % time for signal
+tperiod = 10; % time for signal
+Per = 20; % amount of periods
 %% signal
-Np = tperiod/Ts;
+Np = tperiod/Ts; % amount of samples in period
+Ns = Per*Np; % total amount of samples
 N = floor(Np/2);
 f = linspace(0, 1 - 1/N, N) * (1/Ts)/2; % available frequencies:
 A = ones(N,1); % amplitude distribution
-t = (0:Ts:(Np-1)*Ts)';
+tp = (0:Ts:(Np-1)*Ts)';
+t = (0:Ts:(Ns-1)*Ts)';
 
 % custom multisine
-r = zeros(Np,1);
+rp = zeros(Np,1); % periodic signal
 for k = 1:N
-   r = r+A(k)*sin(2*pi*f(k)*t+rand*2*pi);
+   rp = rp+A(k)*sin(2*pi*f(k)*tp+rand*2*pi);
 end
+r = repmat(rp,Per,1);
 
 % white noise
-% r = randn(Np,1);
+% r = randn(Ns,1);
 %% simulate and LPM/ETFE
 y = lsim(P*C/(1+P*C),r,t); % Pintelon 2012 Figure 7-4!
 u = lsim(C/(1+P*C),r,t); % Pintelon 2012 Figure 7-4!
 
-P_ETFE = etfe([y u],50,N);
-[P_LPM,T_LPM] = LPMClosedLoopArbitrary(u,y,r,n,R);
+P_ETFE = etfe([y u],50,N); %!!!??
+[P_LPM] = LPMClosedLoopPeriodicRobustFRM(u,y,r,n,R,Per);
 %% plotting
 figure(1); clf;
 opts = bodeoptions;
@@ -45,7 +49,7 @@ opts.FreqUnits = 'Hz';
 opts.xlim = [1e-1 125];
 bodemag(P,opts); hold on;
 semilogx(f,20*log10(abs(P_LPM)),'Color',c2); hold on
-semilogx(f,20*log10(abs(T_LPM(1:length(f)))),'Color',c3);
+% semilogx(f,20*log10(abs(T_LPM(1:length(f)))),'Color',c3);
 semilogx(P_ETFE.Frequency*128/pi,20*log10(squeeze(abs(P_ETFE.ResponseData))),'Color',c4);
 legend('True plant','Estimated plant','Estimated transient plant','ETFE')
 
