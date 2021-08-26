@@ -19,13 +19,13 @@ n = 6 ; % window size left and right
 K1 = @(r) [r.^0;r.^1;r.^2;r.^3;r.^4]; % basis for LPM
 
 %% signal
-tperiod = 20;
+tperiod = 40;
 Np = tperiod/Ts;
 N = floor(Np/2);
 T0 = Ts*Np;
 % available frequencies:
 k = (1:N)'; 
-f = k/T0;
+f = linspace(0, 1 - 1/N, N) * (1/Ts)/2;
 A = ones(N,1); % amplitude distribution
 t = (0:Ts:(Np-1)*Ts)';
 
@@ -108,7 +108,7 @@ opts = bodeoptions;
 opts.FreqUnits = 'Hz';
 opts.xlim = [1e-1 125];
 bodemag(G0,opts); hold on;
-semilogx(f,20*log10(abs(G)),'Color',c2); hold on
+semilogx(f,20*log10(abs(G)),'Color',c2); hold on %-(n-1)*Ts or -n*Ts is perfect! -> fix in freq window?
 semilogx(f,20*log10(abs(T(1:length(f)))),'Color',c3);
 semilogx(Getfe.Frequency*128/pi,20*log10(squeeze(abs(Getfe.ResponseData))),'Color',c4);
 legend('True plant','Estimated plant','Estimated transient plant','ETFE')
@@ -118,6 +118,8 @@ figure
 semilogx(f,20*log10(abs(G))-squeeze(magG),'Color',c2); hold on 
 [magG,~,~] = bode(G0,Getfe.Frequency*128*2);
 semilogx(Getfe.Frequency*128/pi,20*log10(squeeze(abs(Getfe.ResponseData)))-squeeze(magG),'Color',c3);
+xlabel('Frequency [Hz]'); xlim([f(1) f(end)]);
+ylabel('Estimation Error [dB]');
 
 
 
