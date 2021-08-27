@@ -22,10 +22,10 @@ N = length(u);      % Total amount of samples
 Np = N/P;           % Samples in one period
 Nn = floor(Np/2);   % amount of samples per period up to nyquist
 
-Nu = size(u,2);
-Ny = size(y,2);
+Nu = size(u,2); % number of inputs
+Ny = size(y,2); % number of outputs
 
-thetaHat = zeros(2,(R+1),Nn);           % Pintelon2012 (7-71)
+thetaHat = zeros(2*Ny,(R+1),Nn);           % Pintelon2012 (7-71) CHECK!
 K1 = @(r) (r*ones(R+1,1)).^((0:R)');    % basis for LPM
 
 Uf=fft(u)/sqrt(P*Np); % correct Pintelon2012 (7-66)
