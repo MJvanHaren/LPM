@@ -1,4 +1,4 @@
-function [G_LPM, T_LPM] = LPMClosedLoopArbitrary(u,y,r,n,R)
+function [G_LPM] = LPMClosedLoopArbitrary(u,y,r,n,R)
 % This script will calculate a local polynomial model for the given reference, in- and output of a system.
 % The system is assumed to be SISO and in closed loop, see figure 7-4 Pintelon2012.
 % Inputs:
@@ -14,9 +14,8 @@ function [G_LPM, T_LPM] = LPMClosedLoopArbitrary(u,y,r,n,R)
 dof = 2*n+1-(R+1)*2;
 if dof<1
     error(['Not high enough DOF = ',num2str(dof),' < 1']);
-% elseif size(u,2)>1 || size(y,2)>1
-%     error('Not yet defined for MIMO systems or provide in- and output data as vectors');
 end
+
 %% define variables.
 Np = length(u); % signal length
 N = floor(Np/2); % amount of samples up to nyquist
@@ -24,6 +23,12 @@ N = floor(Np/2); % amount of samples up to nyquist
 Nu = size(u,2); % number of inputs
 Ny = size(y,2); % number of outputs
 
+%% Transient example from Voorhoeve2018
+s=tf('s');
+T = 100/(s^2+2*0.1*(15*2*pi)*s+(15*2*pi)^2);                    % Voorhoeve2018 Figure 2.2
+f = linspace(0, 1 - 1/N, N) * (1/250)/2;                        % available frequencies (Fix Ts)
+Tk = squeeze(frd(c2d(T,1/250,'tustin'),f).ResponseData);        % (Fix Ts)
+%% dft etc
 thetaHat = zeros(2*Ny,(Nu+1)*(R+1),N); % Pintelon2012 (7-6)
 K1 = @(r) (r*ones(R+1,1)).^((0:R)'); % basis for LPM
 
@@ -34,16 +39,10 @@ Yk = Yf(1:N,:)'; % up to nyquist frequency
 Uk = Uf(1:N,:)';
 Zk = [Yk;Uk]; % Pintelon 2012 (7-48)
 Rk = Rf(1:N,:)';
-
-% Enzo's way
-% Y(n + 1 : N + 2 * n ) = Yf(1 : N + n);
-% U(n + 1 : N + 2 * n ) = Uf(1 : N + n);
-% Y(1 : n )  = conj(Yf(n + 1 : -1 : 2 ));
-% U(1 : n )  = conj(Uf(n + 1 : -1 : 2 ));
-
 %% loop over frequency bins
+Grz_LPM = zeros(2*Ny,Nu,N);
+G_LPM = zeros(Ny,Nu,N);
 for k = 1:N
-% for k = n + 1 : N + n; % Enzo's way (r=-n:n by default)
     if k<n+1 % left border Pintelon2012 (7-29)
         p = n-k+1;
         r=-n+p:n+p;
@@ -71,13 +70,9 @@ for k = 1:N
     thetaHat(:,:,k) = thetaHat(:,:,k)/Dscale;
     Grz_LPM(:,:,k) = thetaHat(:,:,k)*[eye(Nu);zeros(size(thetaHat(:,:,k),2)-Nu,Nu)];% calculate LPM estimate of system
     G_LPM(:,:,k) = Grz_LPM(1:Nu,:,k)./Grz_LPM(Nu+1:end,:,k);
+    % T_LPM = zoveelste rij van thetahat
 end
-% Trz_LPM = squeeze(thetaHat(:,R+2,:)); % calculate LPM estimate transient contribution of system 
 
-% T_LPM = Trz_LPM(1,:)./Trz_LPM(2,:);
- T_LPM =0;
-% Enzo's way
-% G = thetaHat(n+1:end,1); 
-% T = thetaHat(n+1:end,R+2);
+
 end
 

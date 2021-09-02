@@ -11,8 +11,9 @@ Ts = 1/250;
 Omega2 = 4*Omega1; % rad/s
 P = 5.6e3*(0.9*s^2+2*s+5.4e4)/(1.1*0.9*s^4+(1.1+0.9)*2*s^3+(1.1+0.9)*5.4e4*s^2);
 C = 5*(1/(10*2*pi)*s+1)/(1/(40*2*pi)*s+1);
-P = [P 0;0 P];
-C = [C 0;0 C];
+
+% P = [P 0;0 P];
+% C = [C 0;0 C];
 P = c2d(P,Ts,'tustin');
 C = c2d(C,Ts,'tustin');
 Nu = size(P,2);
@@ -39,16 +40,28 @@ if Ny==2
     r = [r rp2];
 end
 
-
 % white noise
 % r = randn(Np,1);
 %% simulate and LPM/ETFE
 L = P*C; Li = C*P;
 y = lsim(L/(1+L),r,t); % Pintelon 2012 Figure 7-4!
 u = lsim(C/(1+Li),r,t); % Pintelon 2012 Figure 7-4!
-
-% P_ETFE = etfe([y u],50,N);
-[P_LPM,T_LPM] = LPMClosedLoopArbitrary(u,y,r,n,R);
+% G_ETFE = zeros(Ny,Nu,N);
+% P_ETFE = zeros(Ny,Nu,N);
+% for i = 1:Nu
+%     for ii = 1:Ny
+%         G_ETFE(ii,i,:) = etfe([y(:,ii) u(:,i)],50,N).ResponseData;
+%         
+%     end
+% end
+% [G_ETFE,f_ETFE] = modalfrf(u,y,1/Ts,500);
+% [magC,~,~] = bode(C,f_ETFE*2*pi);
+% for k = 1:length(f_ETFE)
+%     invC = inv(magC(:,:,k));
+%     P_ETFE(:,:,k) = (inv(invC*reshape(G_ETFE(k,:,:),Ny,Nu)')-eye(Nu))*invC;
+% end
+% f_ETFE = etfe([y(:,1) u(:,1)],50,N).Frequency*128/pi;
+[P_LPM] = LPMClosedLoopArbitrary(u,y,r,n,R);
 %% plotting
 figure(1); clf;
 magP = bode(P,f*2*pi);
@@ -57,21 +70,22 @@ for i = 1:Nu
         subplot(Ny,Nu,i+(ii-1)*Nu);
         semilogx(f,20*log10(abs(squeeze(magP(ii,i,:)))),'Color',c1); hold on;
         semilogx(f,20*log10(abs(squeeze(P_LPM(ii,i,:)))),'Color',c2);
-%         semilogx(f,20*log10(abs(T_LPM(1:length(f)))),'Color',c3);
+%         semilogx(f_ETFE,20*log10(abs(squeeze(G_ETFE(:,ii,i)))),'Color',c4);
         set(gca,'xscale','log');
         xlim([f(2) f(end)]);
     end
 end
-% semilogx(P_ETFE.Frequency*128/pi,20*log10(squeeze(abs(P_ETFE.ResponseData))),'Color',c4);
-legend('True plant','Estimated plant','Estimated transient plant','ETFE')
+legend('True plant','Estimated plant','ETFE')
 
-% figure(2); clf;
-% [magG,~,~] = bode(P,f*2*pi);
-% absG = (squeeze(magG));
-% semilogx(f,mag2db(abs(abs(P_LPM')-absG)),'Color',c2); hold on 
-% % [magG,~,~] = bode(P,P_ETFE.Frequency*128*2);
-% % absG = (squeeze(magG));
-% % semilogx(P_ETFE.Frequency*128/pi,mag2db(abs(squeeze(abs(P_ETFE.ResponseData))-absG)),'Color',c4);
-% xlabel('Frequency [Hz]'); xlim([f(1) f(end)]);
-% ylabel('Estimation Error [dB]');
-% legend('LPM','ETFE','location','best')
+figure(2); clf;
+difP = abs(abs(P_LPM)-magP);
+for i = 1:Nu
+    for ii = 1:Ny
+        subplot(Ny,Nu,i+(ii-1)*Nu);
+        semilogx(f,20*log10(squeeze(difP(ii,i,:))));
+        set(gca,'xscale','log');
+        xlim([f(2) f(end)]);
+        xlabel('Frequency [Hz]');
+        ylabel('Estimation Error LPM [dB]');
+    end
+end

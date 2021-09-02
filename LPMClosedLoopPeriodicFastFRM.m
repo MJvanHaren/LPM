@@ -1,6 +1,6 @@
 function [G_LPM] = LPMClosedLoopPeriodicFastFRM(u,y,r,n,R,P)
 % This script will calculate a local polynomial model for the given reference, in- and output of a system.
-% The system is assumed to be SISO and in closed loop, see figure 7-4 Pintelon2012.
+% The system is assumed to be in closed loop, see figure 7-4 Pintelon2012.
 % Inputs:
 %     u : Input to (open loop) plant in time domain
 %     y : Output of plant to given input signal u
@@ -67,15 +67,5 @@ for k = 1:Nn
     Grz_LPM(:,:,k) = thetaHat(:,:,k)*[eye(Nu);zeros(size(thetaHat(:,:,k),2)-Nu,Nu)];% calculate LPM estimate of system
     G_LPM(:,:,k) = Grz_LPM(1:Nu,:,k)./Grz_LPM(Nu+1:end,:,k);
 end
-% Grz_LPM(:,:,Iu) = squeeze(thetaHat(:,1,:)); % calculate LPM estimate of system
-% Trz_LPM(:,:,Iu) = squeeze(thetaHat(:,R+2,:)); % calculate LPM estimate transient contribution of system
-
-% Grz_LPM=reshape(Grz_LPM,Ny*2,Nu,Nn);
-% Trz_LPM=reshape(Trz_LPM,Ny*2,Nu,Nn);
-
-% for k = 1:Nn
-%     G_LPM(:,:,k) = Grz_LPM(1,:,k)'*pinv(Grz_LPM(2,:,k)');
-%     T_LPM(:,:,k) = Trz_LPM(1,:,k)'*pinv(Trz_LPM(2,:,k)');
-% end
 end
 
