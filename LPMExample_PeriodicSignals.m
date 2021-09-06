@@ -6,10 +6,11 @@ rng(100);
 %% Inputs
 CL      = 0;        % if you want closed loop, CL=1, otherwise open loop (CL=0) [-]
 MIMO    = 0;        % 1 for diagonal mimo system, otherwise siso [-]
-n       = 4;        % window size left and right [-]
+n       = 10;        % window size left and right [-]
 R       = 2;        % max. degree of polynomial in LPM [-]
 tperiod = 20;       % Total time of one period [s]
-Per     = 2;        % amount of periods [-]
+Per     = 6;        % amount of periods [-]
+nT      = Per-1;    % window size left and right for noise transient estimation [-]
 %% system
 s = tf('s');
 zeta = 0.05;
@@ -18,6 +19,7 @@ Ts = 1/250;
 Omega2 = 4*Omega1; % rad/s
 P = 5.6e3*(0.9*s^2+2*s+5.4e4)/(1.1*0.9*s^4+(1.1+0.9)*2*s^3+(1.1+0.9)*5.4e4*s^2);
 C = 5*(1/(10*2*pi)*s+1)/(1/(40*2*pi)*s+1);
+P = 1/(s^2+2*0.1*(2*pi*10)*s+(2*pi*10)^2);
 if MIMO == 1
     P = [P 0;0 P];
     C = [C 0;0 C];
@@ -51,14 +53,14 @@ end
 % r = repmat(randn(Np,Nu),Per);
 %% simulate and LPM/ETFE
 if CL == 1
-    y = lsim(P*C/(1+P*C),r,t); % Pintelon 2012 Figure 7-4!
+    y = lsim(P*C/(1+P*C),r,t)+10*randn(Ns,1); % Pintelon 2012 Figure 7-4!
     u = lsim(C/(1+P*C),r,t); % Pintelon 2012 Figure 7-4!
     % [P_LPM] = LPMClosedLoopPeriodicRobustFRM(u,y,r,n,R,Per);
     [P_LPM] = LPMClosedLoopPeriodicFastFRM(u,y,r,n,R,Per);
 else
-    y = lsim(P,r,t);
+    y = lsim(P,r,t)+0.005*randn(Ns,1);
     u=r;
-    [P_LPM,THz] = LPMOpenLoopPeriodicFastBLA(u,y,n,R,Per);
+    [P_LPM,THz] = LPMOpenLoopPeriodicFastBLA(u,y,n,R,Per,nT);
 end
 
 

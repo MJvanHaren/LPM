@@ -1,10 +1,10 @@
-function [G_LPM,THz] = LPMOpenLoopPeriodicFastBLA(u,y,n,R,P)
+function [G_LPM,THz] = LPMOpenLoopPeriodicFastBLA(u,y,n,R,P,nT)
 % This script will calculate a local polynomial model for the given reference, in- and output of a system.
 % The system is assumed to be in open loop
 % Inputs:
 %     u : Input to (open loop) plant in time domain
 %     y : Output of plant to given input signal u
-%     n : Window size (left and right) for frequency bin k
+%     n : Window size (left and right) for frequency bin k for model
 %     R : Degree of polynomial, e.g. G(omega_k+r) = G(omega)+sum_s=1^R g_s(k)*r^s
 % Outputs:
 %     G_LPM : Estimated plant dynamics
@@ -22,31 +22,32 @@ Nn = floor(Np/2);   % amount of samples per period up to nyquist
 Nu = size(u,2); % number of inputs
 Ny = size(y,2); % number of outputs
 
-thetaHat = zeros(2*Ny,(Nu+1)*(R+1),Nn); % Pintelon2012 (7-6)
+% thetaHat = zeros(2*Ny,(Nu+1)*(R+1),Nn); % Pintelon2012 (7-6)
 K1 = @(r) (r*ones(R+1,1)).^((0:R)'); % basis for LPM
 
 Uf=fft(u)/sqrt(P*Np); % correct Pintelon2012 (7-66)
 Yf=fft(y)/sqrt(P*Np); % correct Pintelon2012 (7-66)
 
-Yk = Yf(1:P:P*Nn,:)'; % up to nyquist frequency (!!!!???) ESSENTIAL
-Uk = Uf(1:P:P*Nn,:)';
+Yk = Yf(1:P*Nn,:)'; % up to nyquist frequency (!!!!???) ESSENTIAL
+Uk = Uf(1:P*Nn,:)';
 Zk = [Yk;Uk];       % Pintelon 2012 (7-48)
 %% suppress noise transient contribution
 thetaHat = zeros(Ny+Nu,R+1,Nn);
+% nT = P-1; % maybe put as input?
 for k = 1:Nn
-    if k<n+1                        % left border Pintelon2012 (7-29)
-        p = n-k+1;
-        r=[-n+p:-1+p 1+p:n+p];      % freq bin leave out middle frequnecy Pintelon2012 (7-72)
-    elseif k>Nn-n                   % right border Pintelon2012 (7-29)
-        p=-n+Nn-k;
-        r=[-n+p:-1+p 1+p:n+p];      % freq bin leave out middle frequnecy Pintelon2012 (7-72)
-    else                            % everything else
-        r = [-n:-1 1:n];            % freq bin leave out middle frequnecy Pintelon2012 (7-72)
+    if k<nT+1                           % left border Pintelon2012 (7-29)
+        p = nT-k+1;
+        r=[-nT+p:-1+p 1+p:nT+p];        % freq bin leave out middle frequnecy Pintelon2012 (7-72)
+    elseif k>Nn-nT                      % right border Pintelon2012 (7-29)
+        p=-nT+Nn-k;
+        r=[-nT+p:-1+p 1+p:nT+p];        % freq bin leave out middle frequnecy Pintelon2012 (7-72)
+    else                                % everything else
+        r = [-nT:-1 1:nT];              % freq bin leave out middle frequnecy Pintelon2012 (7-72)
     end
     
-    Kn = zeros((R+1),2*n);          % reset Kn for every iteration k (+1??)
-    for i = 1:2*n                   % freq bin leave out middle frequnecy Pintelon2012 (7-72)
-        Kn(:,i) = K1(r(i));         % Pintelon2012 between (7-71) and (7-72)
+    Kn = zeros((R+1),2*nT);          % reset Kn for every iteration k (+1??)
+    for i = 1:2*nT                   % freq bin leave out middle frequnecy Pintelon2012 (7-72)
+        Kn(:,i) = K1(r(i));          % Pintelon2012 between (7-71) and (7-72)
     end
     
     % scaling, see Pintelon2012 (7-25)
@@ -58,11 +59,13 @@ for k = 1:Nn
     Kn = Dscale\Kn;
     
     [U_k,S_k,V_k] = svd(Kn'); % better computational feasability Pintelon 2012 (7-24)
-    thetaHat(:,:,k) = Zk(:,k+r)*U_k/S_k'*V_k';
+    thetaHat(:,:,k) = Zk(:,P*(k-1)+r+1)*U_k/S_k'*V_k';
     thetaHat(:,:,k) = thetaHat(:,:,k)/Dscale;
 end
 THz = squeeze(thetaHat(:,1,:));
-Zkh = Zk-THz;
+ZPkh = Zk(:,1:P:end)-THz;
+Zkh = Zk;
+Zkh(:,1:P:end) = Zkh(:,1:P:end)-THz;
 
 %% loop over frequency bins
 Grz_LPM = zeros(2*Ny,Nu,Nn);
@@ -80,7 +83,7 @@ for k = 1:Nn
     end
     L = zeros(Nu*(R+1),2*n+1); % reset Kn for every iteration k
     for i = 1:2*n+1
-        L(:,i) = kron(K1(r(i)),Uk(:,k+r(i)));
+        L(:,i) = kron(K1(r(i)),Uk(:,P*(k+r(i)-1)+1)); % yes?
     end
     
     % scaling, see Pintelon2012 (7-25)
@@ -92,12 +95,10 @@ for k = 1:Nn
     L = Dscale\L;
     
     [U_k,S_k,V_k] = svd(L'); % better computational feasability Pintelon 2012 (7-24)
-    Psi(:,:,k) = Zk(:,k+r)*U_k/S_k'*V_k';
+    Psi(:,:,k) = ZPkh(:,k+r)*U_k/S_k'*V_k';
     Psi(:,:,k) = Psi(:,:,k)/Dscale;
     Grz_LPM(:,:,k) = Psi(:,1:Nu,k);% calculate LPM estimate of system
-    Gry(:,:,k) = Grz_LPM(1:Ny,:,k);
-    Gru(:,:,k) = Grz_LPM(end-Nu+1:end,:,k);
-    G_LPM(:,:,k) = Gry(:,:,k)/(Gru(:,:,k));
+    G_LPM(:,:,k) = Grz_LPM(1:Ny,:,k)/(Grz_LPM(end-Nu+1:end,:,k));
 end
 end
 
