@@ -30,6 +30,8 @@ Yf=fft(y)/sqrt(P*Np); % correct Pintelon2012 (7-66)
 
 Yk = Yf(1:P*Nn,:)'; % up to nyquist frequency (!!!!???) ESSENTIAL
 Uk = Uf(1:P*Nn,:)';
+% Yk(2:end-1) = 2*Yk(2:end-1);
+% Uk(2:end-1) = 2*Uk(2:end-1);
 Zk = [Yk;Uk];       % Pintelon 2012 (7-48)
 %% suppress noise transient contribution
 thetaHat = zeros(Ny+Nu,R+1,Nn);
@@ -63,7 +65,6 @@ for k = 1:Nn
     thetaHat(:,:,k) = thetaHat(:,:,k)/Dscale;
 end
 THz = squeeze(thetaHat(:,1,:));
-ZPkh = Zk(:,1:P:end)-THz;
 Zkh = Zk;
 Zkh(:,1:P:end) = Zkh(:,1:P:end)-THz;
 
@@ -95,7 +96,7 @@ for k = 1:Nn
     L = Dscale\L;
     
     [U_k,S_k,V_k] = svd(L'); % better computational feasability Pintelon 2012 (7-24)
-    Psi(:,:,k) = ZPkh(:,k+r)*U_k/S_k'*V_k';
+    Psi(:,:,k) = Zkh(:,P*(k+r-1)+1)*U_k/S_k'*V_k';
     Psi(:,:,k) = Psi(:,:,k)/Dscale;
     Grz_LPM(:,:,k) = Psi(:,1:Nu,k);% calculate LPM estimate of system
     G_LPM(:,:,k) = Grz_LPM(1:Ny,:,k)/(Grz_LPM(end-Nu+1:end,:,k));
